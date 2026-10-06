@@ -6,8 +6,6 @@
     <title>Генератор расписания стримов</title>
     <!-- Подключаем красивый шрифт -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
-    <!-- Подключаем библиотеку для создания картинки -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -17,21 +15,48 @@
 
         body {
             font-family: 'Montserrat', sans-serif;
-            background-color: #1a1a1a;
+            background-color: #111;
             color: #fff;
             display: flex;
             height: 100vh;
             overflow: hidden;
         }
 
+        /* Кнопка скрытия панели */
+        #toggle-panel-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            padding: 10px 20px;
+            background: #ff7b00;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        #toggle-panel-btn:hover {
+            background: #e66a00;
+        }
+
         /* Панель управления слева */
         .controls {
             width: 400px;
             background-color: #222;
-            padding: 20px;
+            padding: 60px 20px 20px 20px; /* Отступ сверху для кнопки */
             overflow-y: auto;
             border-right: 1px solid #333;
             flex-shrink: 0;
+            transition: margin-left 0.3s ease;
+        }
+
+        .controls.hidden {
+            margin-left: -400px; /* Сдвигаем панель за пределы экрана */
         }
 
         .controls h2 {
@@ -93,24 +118,6 @@
             padding: 6px;
         }
 
-        button {
-            width: 100%;
-            padding: 15px;
-            background: #ff7b00;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.3s;
-            margin-top: 20px;
-        }
-
-        button:hover {
-            background: #e66a00;
-        }
-
         /* Область предпросмотра справа */
         .preview-area {
             flex: 1;
@@ -124,27 +131,27 @@
 
         /* Сама карточка расписания */
         .schedule-card {
-            width: 1000px;
-            height: 1000px; /* Квадратный формат */
-            background-image: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'); /* Заглушка фона */
+            width: 1080px; /* Увеличено для высокого разрешения */
+            height: 1080px; /* Идеальный квадрат для соцсетей */
+            background-image: url('https://images.unsplash.com/photo-1534447677768-be436bb09401?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=100'); 
             background-size: cover;
             background-position: center;
             position: relative;
             border-radius: 20px;
-            padding: 50px;
+            padding: 60px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
             overflow: hidden;
             flex-shrink: 0;
         }
 
-        /* Затемнение фона (без размытия) */
+        /* Затемнение фона */
         .schedule-card::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.4); /* Чуть светлее, чтобы фон был виден */
+            background: rgba(0, 0, 0, 0.45);
             z-index: 1;
         }
 
@@ -161,20 +168,20 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
         .card-header h1 {
-            font-size: 64px;
+            font-size: 72px;
             font-weight: 800;
             line-height: 1.1;
             letter-spacing: -1px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5); /* Тень для читаемости */
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
         }
 
         .socials {
             text-align: right;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             display: flex;
             flex-direction: column;
@@ -197,21 +204,21 @@
 
         /* Карточка дня (Эффект стекла) */
         .day-card {
-            background: rgba(0, 0, 0, 0.4); /* Темная прозрачная основа */
+            background: rgba(0, 0, 0, 0.4);
             border-radius: 15px;
-            padding: 20px;
+            padding: 25px;
             display: flex;
             flex-direction: column;
-            border: 1px solid rgba(255, 255, 255, 0.2); /* Светлая рамка */
-            backdrop-filter: blur(12px); /* Размытие заднего фона */
-            -webkit-backdrop-filter: blur(12px); /* Для Safari */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
 
         .day-header {
             display: flex;
             justify-content: space-between;
             margin-bottom: 20px;
-            font-size: 14px;
+            font-size: 16px;
             color: #ccc;
         }
 
@@ -222,21 +229,21 @@
 
         .day-header .day-time {
             font-weight: 600;
-            font-size: 18px;
+            font-size: 20px;
             color: #fff;
         }
 
         .day-games {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             line-height: 1.4;
             white-space: pre-wrap;
             text-shadow: 0 1px 3px rgba(0,0,0,0.5);
         }
 
-        /* Карточка с аватаркой (Эффект стекла) */
+        /* Карточка с аватаркой */
         .avatar-card {
-            grid-column: span 2; /* Занимает 2 колонки */
+            grid-column: span 2;
             border-radius: 15px;
             overflow: hidden;
             background: rgba(0, 0, 0, 0.4);
@@ -257,8 +264,11 @@
 </head>
 <body>
 
+    <!-- Кнопка скрытия/показа панели -->
+    <button id="toggle-panel-btn">Скрыть настройки</button>
+
     <!-- Панель управления -->
-    <div class="controls">
+    <div class="controls" id="controls-panel">
         <h2>Настройки</h2>
         
         <div class="form-group">
@@ -268,12 +278,12 @@
 
         <div class="form-group">
             <label>Ссылка на фон (URL)</label>
-            <input type="text" id="input-bg" value="https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80">
+            <input type="text" id="input-bg" value="https://images.unsplash.com/photo-1534447677768-be436bb09401?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=100">
         </div>
 
         <div class="form-group">
             <label>Ссылка на аватарку (URL)</label>
-            <input type="text" id="input-avatar" value="https://i.pinimg.com/736x/8a/8c/6e/8a8c6e4a6d4b4a4e4d4c4b4a4e4d4c4b.jpg">
+            <input type="text" id="input-avatar" value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80">
         </div>
 
         <div class="form-group">
@@ -293,12 +303,10 @@
         <div class="day-inputs" id="day-inputs-container">
             <!-- Сюда JS сгенерирует поля для дней -->
         </div>
-
-        <button id="download-btn">Скачать картинку</button>
     </div>
 
     <!-- Область предпросмотра -->
-    <div class="preview-area">
+    <div class="preview-area" id="preview-area">
         <div class="schedule-card" id="schedule-card">
             <div class="card-content">
                 <div class="card-header">
@@ -310,10 +318,9 @@
                     </div>
                 </div>
                 <div class="grid" id="schedule-grid">
-                    <!-- Сюда JS сгенерирует карточки дней -->
                     <!-- Карточка аватарки -->
                     <div class="avatar-card">
-                        <img id="display-avatar" src="https://i.pinimg.com/736x/8a/8c/6e/8a8c6e4a6d4b4a4e4d4c4b4a4e4d4c4b.jpg" alt="Avatar">
+                        <img id="display-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" alt="Avatar">
                     </div>
                 </div>
             </div>
@@ -321,7 +328,7 @@
     </div>
 
     <script>
-        // Данные по умолчанию (как на картинке)
+        // Данные по умолчанию
         const defaultSchedule = [
             { day: 'ПН', date: '22.12', time: '21:00', games: 'WoW\nAion 2' },
             { day: 'ВТ', date: '23.12', time: '21:00', games: 'WoW' },
@@ -339,7 +346,7 @@
         // Функция генерации интерфейса
         function init() {
             defaultSchedule.forEach((item, index) => {
-                // Создаем поля ввода
+                // Поля ввода
                 const inputCard = document.createElement('div');
                 inputCard.className = 'day-input-card';
                 inputCard.innerHTML = `
@@ -350,7 +357,7 @@
                 `;
                 daysContainer.appendChild(inputCard);
 
-                // Создаем карточки в предпросмотре
+                // Карточки в предпросмотре
                 const dayCard = document.createElement('div');
                 dayCard.className = 'day-card';
                 dayCard.innerHTML = `
@@ -365,23 +372,19 @@
                     <div class="day-games" id="display-games-${index}">${item.games}</div>
                 `;
                 
-                // Вставляем перед карточкой аватарки
                 gridContainer.insertBefore(dayCard, avatarCard);
             });
 
-            // Добавляем слушатели событий для обновления в реальном времени
+            // Слушатели для обновления текста
             document.getElementById('input-title').addEventListener('input', (e) => {
                 document.getElementById('display-title').innerHTML = e.target.value.replace(' ', '<br>');
             });
-            
             document.getElementById('input-bg').addEventListener('input', (e) => {
                 document.getElementById('schedule-card').style.backgroundImage = `url('${e.target.value}')`;
             });
-
             document.getElementById('input-avatar').addEventListener('input', (e) => {
                 document.getElementById('display-avatar').src = e.target.value;
             });
-
             document.getElementById('input-twitch').addEventListener('input', (e) => {
                 document.getElementById('display-twitch').innerText = e.target.value;
             });
@@ -405,37 +408,20 @@
             });
         }
 
-        // Инициализация при загрузке
+        // Инициализация
         init();
 
-        // Логика скачивания картинки
-        document.getElementById('download-btn').addEventListener('click', function() {
-            const card = document.getElementById('schedule-card');
-            const btn = this;
-            
-            btn.innerText = 'Генерация...';
-            btn.disabled = true;
+        // Логика скрытия/показа панели
+        const toggleBtn = document.getElementById('toggle-panel-btn');
+        const controlsPanel = document.getElementById('controls-panel');
 
-            // Используем html2canvas для создания скриншота элемента
-            html2canvas(card, {
-                scale: 2, // Увеличиваем качество (2x)
-                useCORS: true, // Позволяет загружать картинки с других сайтов
-                backgroundColor: null
-            }).then(canvas => {
-                // Создаем ссылку для скачивания
-                const link = document.createElement('a');
-                link.download = 'stream_schedule.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                
-                btn.innerText = 'Скачать картинку';
-                btn.disabled = false;
-            }).catch(err => {
-                console.error('Ошибка при генерации:', err);
-                alert('Произошла ошибка при создании картинки. Проверьте ссылки на изображения.');
-                btn.innerText = 'Скачать картинку';
-                btn.disabled = false;
-            });
+        toggleBtn.addEventListener('click', () => {
+            controlsPanel.classList.toggle('hidden');
+            if (controlsPanel.classList.contains('hidden')) {
+                toggleBtn.innerText = 'Показать настройки';
+            } else {
+                toggleBtn.innerText = 'Скрыть настройки';
+            }
         });
     </script>
 </body>
