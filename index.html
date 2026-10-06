@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор расписания стримов</title>
+    <!-- Подключаем красивый шрифт -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Подключаем библиотеку для создания картинки -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #1a1a1a;
+            color: #fff;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Панель управления слева */
+        .controls {
+            width: 400px;
+            background-color: #222;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #333;
+        }
+
+        .controls h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            background: #333;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 5px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            height: 60px;
+        }
+
+        .day-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .day-input-card {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .day-input-card h4 {
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: #ff7b00;
+        }
+
+        .day-input-card input {
+            margin-bottom: 5px;
+            font-size: 12px;
+            padding: 6px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #ff7b00;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background: #e66a00;
+        }
+
+        /* Область предпросмотра справа */
+        .preview-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: #111;
+            overflow: auto;
+        }
+
+        /* Сама карточка расписания */
+        .schedule-card {
+            width: 1000px;
+            height: 1000px; /* Квадратный формат */
+            background-image: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'); /* Заглушка фона */
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            border-radius: 20px;
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* Затемнение и размытие фона */
+        .schedule-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 1;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Шапка */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+        }
+
+        .card-header h1 {
+            font-size: 64px;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -1px;
+        }
+
+        .socials {
+            text-align: right;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .socials .twitch { color: #a970ff; }
+        .socials .boosty { color: #ff7b00; }
+        .socials .tiktok { color: #69C9D0; }
+
+        /* Сетка */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 20px;
+            flex: 1;
+        }
+
+        /* Карточка дня */
+        .day-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .day-header .day-name {
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .day-header .day-time {
+            font-weight: 600;
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .day-games {
+            font-size: 18px;
+            font-weight: 600;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        /* Карточка с аватаркой */
+        .avatar-card {
+            grid-column: span 2; /* Занимает 2 колонки */
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Панель управления -->
+    <div class="controls">
+        <h2>Настройки</h2>
+        
+        <div class="form-group">
+            <label>Заголовок</label>
+            <input type="text" id="input-title" value="Расписание стримов">
+        </div>
+
+        <div class="form-group">
+            <label>Ссылка на фон (URL)</label>
+            <input type="text" id="input-bg" value="https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80">
+        </div>
+
+        <div class="form-group">
+            <label>Ссылка на аватарку (URL)</label>
+            <input type="text" id="input-avatar" value="https://i.pinimg.com/736x/8a/8c/6e/8a8c6e4a6d4b4a4e4d4c4b4a4e4d4c4b.jpg">
+        </div>
+
+        <div class="form-group">
+            <label>Twitch</label>
+            <input type="text" id="input-twitch" value="twitch.tv/ellvi">
+        </div>
+        <div class="form-group">
+            <label>Boosty</label>
+            <input type="text" id="input-boosty" value="boosty.to/ellvi">
+        </div>
+        <div class="form-group">
+            <label>TikTok</label>
+            <input type="text" id="input-tiktok" value="tiktok.com/pchellvi">
+        </div>
+
+        <h2>Дни стримов</h2>
+        <div class="day-inputs" id="day-inputs-container">
+            <!-- Сюда JS сгенерирует поля для дней -->
+        </div>
+
+        <button id="download-btn">Скачать картинку</button>
+    </div>
+
+    <!-- Область предпросмотра -->
+    <div class="preview-area">
+        <div class="schedule-card" id="schedule-card">
+            <div class="card-content">
+                <div class="card-header">
+                    <h1 id="display-title">Расписание<br>стримов</h1>
+                    <div class="socials">
+                        <span class="twitch" id="display-twitch">twitch.tv/ellvi</span>
+                        <span class="boosty" id="display-boosty">boosty.to/ellvi</span>
+                        <span class="tiktok" id="display-tiktok">tiktok.com/pchellvi</span>
+                    </div>
+                </div>
+                <div class="grid" id="schedule-grid">
+                    <!-- Сюда JS сгенерирует карточки дней -->
+                    <!-- Карточка аватарки -->
+                    <div class="avatar-card">
+                        <img id="display-avatar" src="https://i.pinimg.com/736x/8a/8c/6e/8a8c6e4a6d4b4a4e4d4c4b4a4e4d4c4b.jpg" alt="Avatar">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Данные по умолчанию (как на картинке)
+        const defaultSchedule = [
+            { day: 'ПН', date: '22.12', time: '21:00', games: 'WoW\nAion 2' },
+            { day: 'ВТ', date: '23.12', time: '21:00', games: 'WoW' },
+            { day: 'СР', date: '24.12', time: '22:00', games: 'Aion 2\nWoW' },
+            { day: 'ЧТ', date: '25.12', time: '19:00', games: 'Hogwarts Legacy\nWoW' },
+            { day: 'ПТ', date: '26.12', time: '19:20', games: 'Hogwarts Legacy\nWoW' },
+            { day: 'СБ', date: '27.12', time: '17:00', games: 'STALCRAFT X\nWoW\nBlue Lock' },
+            { day: 'ВС', date: '28.12', time: '19:00', games: 'AION 2 + Blue Lock\nWoW' }
+        ];
+
+        const daysContainer = document.getElementById('day-inputs-container');
+        const gridContainer = document.getElementById('schedule-grid');
+        const avatarCard = document.querySelector('.avatar-card');
+
+        // Функция генерации интерфейса
+        function init() {
+            defaultSchedule.forEach((item, index) => {
+                // Создаем поля ввода
+                const inputCard = document.createElement('div');
+                inputCard.className = 'day-input-card';
+                inputCard.innerHTML = `
+                    <h4>${item.day}</h4>
+                    <input type="text" id="date-${index}" value="${item.date}" placeholder="Дата (дд.мм)">
+                    <input type="text" id="time-${index}" value="${item.time}" placeholder="Время (чч:мм)">
+                    <textarea id="games-${index}" placeholder="Игры (с новой строки)">${item.games}</textarea>
+                `;
+                daysContainer.appendChild(inputCard);
+
+                // Создаем карточки в предпросмотре
+                const dayCard = document.createElement('div');
+                dayCard.className = 'day-card';
+                dayCard.innerHTML = `
+                    <div class="day-header">
+                        <span class="day-name">${item.day}:</span>
+                        <span>Старт:</span>
+                    </div>
+                    <div class="day-header" style="margin-top: -15px;">
+                        <span class="day-date" id="display-date-${index}">${item.date}</span>
+                        <span class="day-time" id="display-time-${index}">${item.time}</span>
+                    </div>
+                    <div class="day-games" id="display-games-${index}">${item.games}</div>
+                `;
+                
+                // Вставляем перед карточкой аватарки
+                gridContainer.insertBefore(dayCard, avatarCard);
+            });
+
+            // Добавляем слушатели событий для обновления в реальном времени
+            document.getElementById('input-title').addEventListener('input', (e) => {
+                document.getElementById('display-title').innerHTML = e.target.value.replace(' ', '<br>');
+            });
+            
+            document.getElementById('input-bg').addEventListener('input', (e) => {
+                document.getElementById('schedule-card').style.backgroundImage = `url('${e.target.value}')`;
+            });
+
+            document.getElementById('input-avatar').addEventListener('input', (e) => {
+                document.getElementById('display-avatar').src = e.target.value;
+            });
+
+            document.getElementById('input-twitch').addEventListener('input', (e) => {
+                document.getElementById('display-twitch').innerText = e.target.value;
+            });
+            document.getElementById('input-boosty').addEventListener('input', (e) => {
+                document.getElementById('display-boosty').innerText = e.target.value;
+            });
+            document.getElementById('input-tiktok').addEventListener('input', (e) => {
+                document.getElementById('display-tiktok').innerText = e.target.value;
+            });
+
+            defaultSchedule.forEach((_, index) => {
+                document.getElementById(`date-${index}`).addEventListener('input', (e) => {
+                    document.getElementById(`display-date-${index}`).innerText = e.target.value;
+                });
+                document.getElementById(`time-${index}`).addEventListener('input', (e) => {
+                    document.getElementById(`display-time-${index}`).innerText = e.target.value;
+                });
+                document.getElementById(`games-${index}`).addEventListener('input', (e) => {
+                    document.getElementById(`display-games-${index}`).innerText = e.target.value;
+                });
+            });
+        }
+
+        // Инициализация при загрузке
+        init();
+
+        // Логика скачивания картинки
+        document.getElementById('download-btn').addEventListener('click', function() {
+            const card = document.getElementById('schedule-card');
+            const btn = this;
+            
+            btn.innerText = 'Генерация...';
+            btn.disabled = true;
+
+            // Используем html2canvas для создания скриншота элемента
+            html2canvas(card, {
+                scale: 2, // Увеличиваем качество (2x)
+                useCORS: true, // Позволяет загружать картинки с других сайтов
+                backgroundColor: null
+            }).then(canvas => {
+                // Создаем ссылку для скачивания
+                const link = document.createElement('a');
+                link.download = 'stream_schedule.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                btn.innerText = 'Скачать картинку';
+                btn.disabled = false;
+            }).catch(err => {
+                console.error('Ошибка при генерации:', err);
+                alert('Произошла ошибка при создании картинки. Проверьте ссылки на изображения.');
+                btn.innerText = 'Скачать картинку';
+                btn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>
